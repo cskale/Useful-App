@@ -2,7 +2,6 @@ export interface Question {
   id: string;
   text: string;
   description?: string;
-  explanation?: string;
   type: "scale" | "multiple_choice" | "rating";
   options?: string[];
   scale?: {

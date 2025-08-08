@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { HelpCircle, MessageSquare } from "lucide-react";
 import { Question } from "@/data/questionnaire";
-import QuestionExplanation from "./QuestionExplanation";
 
 interface QuestionCardProps {
   question: Question;
@@ -84,7 +83,14 @@ export function QuestionCard({ question, value, onChange }: QuestionCardProps) {
                   </span>
                 </Button>
               );
-            })}
+            })
+{/* Why we ask this (always visible) */}
+{question?.explanation && (
+  <div className="mt-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-md text-sm text-gray-700">
+    <strong>Why we ask this:</strong> {question.explanation}
+  </div>
+)}
+}
           </div>
 
           {/* Selected Value Display */}
