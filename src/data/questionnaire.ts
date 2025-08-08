@@ -2,6 +2,7 @@ export interface Question {
   id: string;
   text: string;
   description?: string;
+  explanation?: string;
   type: "scale" | "multiple_choice" | "rating";
   options?: string[];
   scale?: {
@@ -40,6 +41,7 @@ export const questionnaire: Questionnaire = {
         {
           id: "nvs-1",
           text: "What is your average monthly new vehicle sales volume?",
+          explanation: "Monthly sales volume indicates market reach, lead quality, and sales capacity. It calibrates benchmarks and pipeline expectations.",
           description: "Consider your last 12 months performance",
           type: "scale",
           scale: { min: 1, max: 5, labels: ["<20 units", "21-50 units", "51-100 units", "101-200 units", ">200 units"] },
@@ -49,6 +51,7 @@ export const questionnaire: Questionnaire = {
         {
           id: "nvs-2",
           text: "How would you rate your sales team's closing ratio?",
+          explanation: "Closing ratio reflects funnel efficiency and sales process quality from lead to conversion.",
           description: "Percentage of leads that convert to sales",
           type: "scale",
           scale: { min: 1, max: 5, labels: ["<10%", "10-15%", "16-20%", "21-25%", ">25%"] },
@@ -58,6 +61,7 @@ export const questionnaire: Questionnaire = {
         {
           id: "nvs-3",
           text: "Customer satisfaction score for new vehicle sales process",
+          explanation: "Test drive to sale ratio highlights engagement quality and salesperson follow-up effectiveness.",
           description: "Based on customer surveys and feedback",
           type: "scale",
           scale: { min: 1, max: 5, labels: ["Poor (1-2)", "Fair (3-4)", "Good (5-6)", "Very Good (7-8)", "Excellent (9-10)"] },
@@ -236,6 +240,7 @@ export const questionnaire: Questionnaire = {
         {
           id: "svc-1",
           text: "Service department labor efficiency",
+          explanation: "Service bay utilization drives fixed absorption—low utilization suggests scheduling or capacity issues.",
           description: "Percentage of productive labor hours",
           type: "scale",
           scale: { min: 1, max: 5, labels: ["<60%", "60-70%", "71-80%", "81-90%", ">90%"] },

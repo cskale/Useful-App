@@ -4,6 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { HelpCircle, MessageSquare } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Question } from "@/data/questionnaire";
 
 interface QuestionCardProps {
@@ -135,3 +138,30 @@ export function QuestionCard({ question, value, onChange }: QuestionCardProps) {
     </div>
   );
 }
+
+        {/* Explanation / rationale */}
+        {question.explanation && (
+          <div className="mt-4">
+            <Collapsible>
+              <div className="flex items-center gap-2 text-slate-600">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Why we ask this</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <CollapsibleTrigger className="text-sm font-medium underline underline-offset-4">
+                  Why we ask this
+                </CollapsibleTrigger>
+              </div>
+              <CollapsibleContent className="mt-2 text-sm text-slate-700 bg-slate-50 p-3 rounded-md">
+                {question.explanation}
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+        )}
+    
