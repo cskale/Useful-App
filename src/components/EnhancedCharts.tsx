@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Award, Target } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 
 // ChartData interface removed; charts derive structure from fetched data
@@ -209,33 +210,41 @@ export const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div key={trendData.length} className="transition-opacity duration-500">
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis domain={[50, 100]} />
-                <Tooltip />
-                <Area
-                  type="monotone"
-                  dataKey="overall"
-                  stroke="#3b82f6"
-                  fill="#3b82f6"
-                  fillOpacity={0.3}
-                  name="Overall Performance"
-                  isAnimationActive
-                />
-                <Line
-                  type="monotone"
-                  dataKey="target"
-                  stroke="#10b981"
-                  strokeDasharray="5 5"
-                  name="Target"
-                  isAnimationActive
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          <AnimatePresence>
+            <motion.div
+              key={trendData.length}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis domain={[50, 100]} />
+                  <Tooltip />
+                  <Area
+                    type="monotone"
+                    dataKey="overall"
+                    stroke="#3b82f6"
+                    fill="#3b82f6"
+                    fillOpacity={0.3}
+                    name="Overall Performance"
+                    isAnimationActive
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="target"
+                    stroke="#10b981"
+                    strokeDasharray="5 5"
+                    name="Target"
+                    isAnimationActive
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </motion.div>
+          </AnimatePresence>
         </CardContent>
       </Card>
 
