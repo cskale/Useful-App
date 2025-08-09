@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,8 @@ interface QuestionCardProps {
 export function QuestionCard({ question, value, onChange }: QuestionCardProps) {
   const [showNotes, setShowNotes] = useState(false);
   const [notes, setNotes] = useState("");
+  const shouldReduceMotion = useReducedMotion();
+  const MotionButton = motion(Button);
 
   const handleRatingClick = (rating: number) => {
     onChange(rating);
@@ -33,7 +36,13 @@ export function QuestionCard({ question, value, onChange }: QuestionCardProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={shouldReduceMotion ? undefined : { opacity: 0, y: -20 }}
+      transition={{ duration: shouldReduceMotion ? 0 : 0.3 }}
+      className="space-y-6"
+    >
       {/* Question Header */}
       <div className="space-y-3">
         <div className="flex items-start gap-3">
@@ -70,19 +79,21 @@ export function QuestionCard({ question, value, onChange }: QuestionCardProps) {
               const label = getRatingText(rating);
 
               return (
-                <Button
+                <MotionButton
                   key={rating}
                   variant={isSelected ? "default" : "outline"}
                   onClick={() => handleRatingClick(rating)}
                   className={`h-auto p-4 flex flex-col items-center gap-2 transition-all duration-200 ${
                     isSelected ? getRatingColor(rating) : "hover:bg-gray-50"
                   }`}
+                  whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }}
+                  whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
                 >
                   <span className="text-2xl font-bold">{rating}</span>
                   <span className="text-xs text-center leading-tight">
                     {label}
                   </span>
-                </Button>
+                </MotionButton>
               );
             })}
           </div>
@@ -133,6 +144,6 @@ export function QuestionCard({ question, value, onChange }: QuestionCardProps) {
           </CardContent>
         </Card>
       )}
-    </div>
+    </motion.div>
   );
 }
