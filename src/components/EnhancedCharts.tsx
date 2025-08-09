@@ -1,21 +1,17 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Award, Target } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
-interface ChartData {
-  name: string;
-  value: number;
-  benchmark?: number;
-  trend?: number;
-  color?: string;
-}
+// ChartData interface removed; charts derive structure from fetched data
 
 interface EnhancedChartsProps {
   scores: Record<string, number>;
   benchmarks?: Record<string, number>;
   trends?: Record<string, number>;
+  dealershipId?: string;
 }
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
@@ -23,7 +19,8 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'
 export const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
   scores,
   benchmarks = {},
-  trends = {}
+  trends = {},
+  dealershipId
 }) => {
   // Prepare data for charts
   const radarData = Object.entries(scores).map(([key, value]) => ({
@@ -56,16 +53,58 @@ export const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
     { range: '<60', count: Object.values(scores).filter(s => s < 60).length, color: '#ef4444' }
   ];
 
-  // Trend analysis data (simulated historical data)
-  const trendData = Array.from({ length: 6 }, (_, i) => {
-    const month = new Date();
-    month.setMonth(month.getMonth() - (5 - i));
-    return {
-      month: month.toLocaleDateString('en', { month: 'short' }),
-      overall: Object.values(scores).reduce((a, b) => a + b, 0) / Object.values(scores).length + (Math.random() - 0.5) * 10,
-      target: 80
+  interface TrendPoint {
+    month: string;
+    overall: number;
+    target: number;
+  }
+
+  const [trendData, setTrendData] = useState<TrendPoint[]>([]);
+
+  useEffect(() => {
+    if (!dealershipId) return;
+
+    const fetchData = async () => {
+      const { data, error } = await supabase.rpc('get_historical_scores', {
+        dealership_id: dealershipId,
+      });
+      if (!error && data) {
+        const mapped = data.map((row: { created_at: string; overall_score: number }) => ({
+          month: new Date(row.created_at).toLocaleDateString('en', { month: 'short' }),
+          overall: row.overall_score || 0,
+          target: 80,
+        }));
+        setTrendData(mapped);
+      }
     };
-  });
+
+    fetchData();
+
+    const channel = supabase
+      .channel('score_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'assessments',
+          filter: `dealership_id=eq.${dealershipId}`,
+        },
+        (payload) => {
+          const newPoint = {
+            month: new Date(payload.new.created_at).toLocaleDateString('en', { month: 'short' }),
+            overall: payload.new.overall_score || 0,
+            target: 80,
+          };
+          setTrendData((prev) => [...prev, newPoint]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [dealershipId]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -170,29 +209,33 @@ export const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis domain={[50, 100]} />
-              <Tooltip />
-              <Area
-                type="monotone"
-                dataKey="overall"
-                stroke="#3b82f6"
-                fill="#3b82f6"
-                fillOpacity={0.3}
-                name="Overall Performance"
-              />
-              <Line
-                type="monotone"
-                dataKey="target"
-                stroke="#10b981"
-                strokeDasharray="5 5"
-                name="Target"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <div key={trendData.length} className="transition-opacity duration-500">
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={trendData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis domain={[50, 100]} />
+                <Tooltip />
+                <Area
+                  type="monotone"
+                  dataKey="overall"
+                  stroke="#3b82f6"
+                  fill="#3b82f6"
+                  fillOpacity={0.3}
+                  name="Overall Performance"
+                  isAnimationActive
+                />
+                <Line
+                  type="monotone"
+                  dataKey="target"
+                  stroke="#10b981"
+                  strokeDasharray="5 5"
+                  name="Target"
+                  isAnimationActive
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
 

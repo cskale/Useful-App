@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { marked } from "marked";
 
 type Section = { slug:string; title:string; summary:string; position:number };
 type Article = { section_slug:string; heading:string; body_md:string; position:number };
@@ -73,8 +72,9 @@ export default function ResourcesPage(){
             {getArticles(sec.slug).map((a,i)=>(
               <article key={i} className="mt-4">
                 <h3 className="font-medium">{a.heading}</h3>
-                <div className="prose prose-sm max-w-none text-gray-800"
-                     dangerouslySetInnerHTML={{ __html: marked.parse(a.body_md) as string }} />
+                <div className="prose prose-sm max-w-none text-gray-800" style={{ whiteSpace: 'pre-line' }}>
+                  {a.body_md}
+                </div>
               </article>
             ))}
 
@@ -83,8 +83,9 @@ export default function ResourcesPage(){
                 {faqs.map((f,i)=>(
                   <details key={i} className="py-2">
                     <summary className="cursor-pointer font-medium">{f.question}</summary>
-                    <div className="prose prose-sm max-w-none text-gray-800 mt-2"
-                         dangerouslySetInnerHTML={{ __html: marked.parse(f.answer_md) as string }} />
+                    <div className="prose prose-sm max-w-none text-gray-800 mt-2" style={{ whiteSpace: 'pre-line' }}>
+                      {f.answer_md}
+                    </div>
                   </details>
                 ))}
               </div>

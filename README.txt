@@ -17,10 +17,7 @@ Install (Vercel)
    - VITE_SUPABASE_URL=https://ujjvujnsdwicsmkoazhq.supabase.co
    - VITE_SUPABASE_ANON_KEY=YOUR_ANON_KEY
    Redeploy afterward.
-3) Ensure 'marked' is a dependency in package.json:
-   npm i marked
-   Commit and redeploy, so Vercel installs it.
-4) Show the flyout under your hero:
+3) Show the flyout under your hero:
    import HeroFooter from "@/components/resources/HeroFooter";
    // ...below your hero JSX:
    <HeroFooter />
@@ -38,4 +35,4 @@ Test
 Troubleshooting
 - 401/403 in console → check Vercel env names/values and redeploy.
 - Blank content → confirm rows exist and section_slug matches section slugs.
-- Markdown not formatted → ensure 'marked' is installed and imported.
+- Markdown not formatted → verify your content is plain text or add a markdown parser.
