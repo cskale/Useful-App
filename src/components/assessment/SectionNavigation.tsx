@@ -11,7 +11,7 @@ interface SectionNavigationProps {
   currentQuestion: number;
   answers: Record<string, number>;
   onNavigate: (sectionIndex: number, questionIndex: number) => void;
-  getSectionIcon: (title: string) => React.ComponentType<any>;
+  getSectionIcon: (title: string) => React.ComponentType<unknown>;
   getSectionColor: (index: number) => string;
 }
 

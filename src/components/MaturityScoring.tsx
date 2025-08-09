@@ -5,7 +5,7 @@ import { ArrowRight, CheckCircle, Circle, Target, Zap } from "lucide-react";
 
 interface MaturityScoringProps {
   scores: Record<string, number>;
-  answers: Record<string, any>;
+  answers: Record<string, number>;
 }
 
 interface MaturityLevel {

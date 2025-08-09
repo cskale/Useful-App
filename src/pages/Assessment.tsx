@@ -40,41 +40,64 @@ export default function Assessment() {
   const currentSectionData = sections[currentSection];
   const currentQuestionData = currentSectionData?.questions[currentQuestion];
 
-  // Calculate real-time scores
-  const calculateScores = useCallback((currentAnswers: Record<string, number>) => {
-    const sectionScores: Record<string, number> = {};
-    
-    sections.forEach((section) => {
-      const sectionAnswers = section.questions
-        .map(q => currentAnswers[q.id])
-        .filter(answer => answer !== undefined);
-      
-      if (sectionAnswers.length > 0) {
-        const average = sectionAnswers.reduce((sum, answer) => sum + answer, 0) / sectionAnswers.length;
-        sectionScores[section.id] = Math.round((average / 5) * 100);
-      }
-    });
-    
-    return sectionScores;
-  }, [sections]);
+  // Calculate weighted scores and overall score
+  const calculateScores = useCallback(
+    (
+      currentAnswers: Record<string, number>
+    ): { sectionScores: Record<string, number>; overallScore: number } => {
+      const sectionScores: Record<string, number> = {};
+      const sectionWeights: Record<string, number> = {};
+
+      sections.forEach((section) => {
+        let weightedTotal = 0;
+        let totalWeight = 0;
+
+        section.questions.forEach((q) => {
+          const answer = currentAnswers[q.id];
+          if (answer !== undefined) {
+            const weight = q.weight ?? 1;
+            const min = q.scale?.min ?? 1;
+            const max = q.scale?.max ?? 5;
+            const normalized = ((answer - min) / (max - min)) * 100;
+            weightedTotal += normalized * weight;
+            totalWeight += weight;
+          }
+        });
+
+        if (totalWeight > 0) {
+          sectionScores[section.id] = Math.round(weightedTotal / totalWeight);
+          sectionWeights[section.id] = totalWeight;
+        }
+      });
+
+      const overallScore = Object.keys(sectionScores).length
+        ? Math.round(
+            Object.entries(sectionScores).reduce(
+              (sum, [id, score]) => sum + score * (sectionWeights[id] || 1),
+              0
+            ) /
+              Object.values(sectionWeights).reduce((sum, w) => sum + w, 0)
+          )
+        : 0;
+
+      return { sectionScores, overallScore };
+    },
+    [sections]
+  );
 
   const handleAnswer = async (questionId: string, value: number) => {
     const newAnswers = { ...answers, [questionId]: value };
     setAnswers(newAnswers);
     
     // Calculate real-time scores
-    const newScores = calculateScores(newAnswers);
-    setScores(newScores);
-    
+    const { sectionScores, overallScore } = calculateScores(newAnswers);
+    setScores(sectionScores);
+
     // Auto-save to local storage
     try {
-      const overallScore = Object.values(newScores).length > 0 
-        ? Math.round(Object.values(newScores).reduce((sum, score) => sum + score, 0) / Object.values(newScores).length)
-        : 0;
-        
       await saveAssessment({
         answers: newAnswers,
-        scores: newScores,
+        scores: sectionScores,
         overallScore,
         status: 'in_progress' as const
       });
@@ -146,7 +169,7 @@ export default function Assessment() {
     return colors[index % colors.length];
   };
 
-  // Load existing assessment data on mount (only once)
+  // Load existing assessment data on mount
   useEffect(() => {
     const loadExistingData = async () => {
       try {
@@ -155,9 +178,9 @@ export default function Assessment() {
         console.error('Failed to load assessment:', error);
       }
     };
-    
+
     loadExistingData();
-  }, []); // Remove dependencies to prevent infinite loop
+  }, [loadAssessment]);
 
   // Sync with loaded assessment data
   useEffect(() => {
@@ -169,10 +192,7 @@ export default function Assessment() {
 
   const handleFinishAssessment = async () => {
     try {
-      const finalScores = calculateScores(answers);
-      const overallScore = Object.values(finalScores).length > 0 
-        ? Math.round(Object.values(finalScores).reduce((sum, score) => sum + score, 0) / Object.values(finalScores).length)
-        : 0;
+      const { sectionScores: finalScores, overallScore } = calculateScores(answers);
         
       // Check if all questions are answered
       const totalQuestions = sections.reduce((total, section) => total + section.questions.length, 0);
