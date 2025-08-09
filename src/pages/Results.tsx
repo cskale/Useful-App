@@ -17,10 +17,29 @@ import { KPIInsights } from "@/components/KPIInsights";
 import { MaturityScoring } from "@/components/MaturityScoring";
 import { InteractiveRecommendations } from "@/components/InteractiveRecommendations";
 
+interface CompletedAssessmentResults {
+  answers: Record<string, number>;
+  scores: Record<string, number>;
+  overallScore: number;
+  completedAt: string;
+}
+
+interface RecommendationAction {
+  id: number;
+  department: string;
+  priority: 'critical' | 'high' | 'medium';
+  emoji: string;
+  title: string;
+  description: string;
+  impact: string;
+  effort: string;
+  score: number;
+}
+
 export default function Results() {
   const [activeTab, setActiveTab] = useState("executive");
-  const [improvementActions, setImprovementActions] = useState<any[]>([]);
-  const [resultsData, setResultsData] = useState<any>(null);
+  const [improvementActions, setImprovementActions] = useState<RecommendationAction[]>([]);
+  const [resultsData, setResultsData] = useState<CompletedAssessmentResults | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   
   const { toast } = useToast();
@@ -45,7 +64,7 @@ export default function Results() {
   }, [navigate, toast]);
 
   const generateImprovementActions = (scores: Record<string, number>) => {
-    const actions: any[] = [];
+    const actions: RecommendationAction[] = [];
     
     Object.entries(scores).forEach(([section, score]) => {
       if (score < 75) {

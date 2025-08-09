@@ -145,7 +145,17 @@ export const useAssessmentData = () => {
 
   // Generate improvement actions
   const generateImprovementActions = useCallback(async (assessmentId: string, scores: Record<string, number>) => {
-    const actions: any[] = [];
+    type DBImprovementAction = {
+      assessment_id: string;
+      department: string;
+      priority: ImprovementAction['priority'];
+      action_title: string;
+      action_description: string;
+      expected_impact: string;
+      estimated_effort: string;
+    };
+
+    const actions: DBImprovementAction[] = [];
     
     // Analyze scores and generate targeted actions
     Object.entries(scores).forEach(([section, score]) => {

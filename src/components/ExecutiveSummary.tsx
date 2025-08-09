@@ -6,7 +6,7 @@ import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-rea
 interface ExecutiveSummaryProps {
   overallScore: number;
   scores: Record<string, number>;
-  answers: Record<string, any>;
+  answers: Record<string, number>;
   completedAt: string;
 }
 
