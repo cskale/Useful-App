@@ -4,13 +4,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Download, FileText, Table, Image, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { DealershipInfo } from '@/types/dealership';
+
+interface Recommendation {
+  priority: string;
+  department: string;
+  title: string;
+  description: string;
+  impact: string;
+  effort: string;
+}
+
+interface Benchmark {
+  metricName: string;
+  averageScore: number;
+}
 
 interface ExportData {
-  dealership: any;
+  dealership: DealershipInfo | null;
   scores: Record<string, number>;
-  answers: Record<string, any>;
-  recommendations: any[];
-  benchmarks?: any[];
+  answers: Record<string, unknown>;
+  recommendations: Recommendation[];
+  benchmarks?: Benchmark[];
 }
 
 interface EnhancedExportProps {
@@ -105,7 +120,7 @@ Report ID: ${Date.now()}
     };
 
     // Convert to CSV format
-    const createCSV = (data: any[]) => {
+    const createCSV = (data: (string | number)[][]) => {
       return data.map(row => row.join(',')).join('\n');
     };
 

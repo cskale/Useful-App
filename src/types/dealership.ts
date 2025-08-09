@@ -12,7 +12,7 @@ export interface AssessmentData {
   id?: string;
   dealershipId?: string;
   sessionId: string;
-  answers: Record<string, any>;
+  answers: Record<string, number>;
   scores: Record<string, number>;
   overallScore?: number;
   status: 'in_progress' | 'completed' | 'archived';

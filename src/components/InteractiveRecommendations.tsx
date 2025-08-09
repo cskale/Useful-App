@@ -9,7 +9,7 @@ import { AlertTriangle, CheckCircle, Clock, DollarSign, TrendingUp, BookOpen, Us
 
 interface InteractiveRecommendationsProps {
   scores: Record<string, number>;
-  answers: Record<string, any>;
+  answers: Record<string, number>;
 }
 
 interface Recommendation {
