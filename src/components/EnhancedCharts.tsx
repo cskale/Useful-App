@@ -210,7 +210,7 @@ export const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             <motion.div
               key={trendData.length}
               initial={{ opacity: 0 }}
