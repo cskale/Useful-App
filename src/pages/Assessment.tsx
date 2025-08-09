@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ChevronLeft, ChevronRight, Car, Wrench, Package, DollarSign, BarChart3, Bot } from "lucide-react";
+import { ChevronLeft, ChevronRight, Car, Wrench, Package, BarChart3, Bot } from "lucide-react";
+import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { QuestionCard } from "@/components/assessment/QuestionCard";
@@ -12,16 +12,14 @@ import { SectionNavigation } from "@/components/assessment/SectionNavigation";
 import { SmartAssistant } from "@/components/SmartAssistant";
 import { questionnaire } from "@/data/questionnaire";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
-import { AssessmentData } from "@/types/dealership";
 
 export default function Assessment() {
   const [currentSection, setCurrentSection] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [pendingNavigation, setPendingNavigation] = useState<() => void | null>(null);
   const [showAssistant, setShowAssistant] = useState(false);
   const [scores, setScores] = useState<Record<string, number>>({});
+  const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -38,43 +36,66 @@ export default function Assessment() {
   const progress = (answeredQuestions / totalQuestions) * 100;
 
   const currentSectionData = sections[currentSection];
-  const currentQuestionData = currentSectionData?.questions[currentQuestion];
 
-  // Calculate real-time scores
-  const calculateScores = useCallback((currentAnswers: Record<string, number>) => {
-    const sectionScores: Record<string, number> = {};
-    
-    sections.forEach((section) => {
-      const sectionAnswers = section.questions
-        .map(q => currentAnswers[q.id])
-        .filter(answer => answer !== undefined);
-      
-      if (sectionAnswers.length > 0) {
-        const average = sectionAnswers.reduce((sum, answer) => sum + answer, 0) / sectionAnswers.length;
-        sectionScores[section.id] = Math.round((average / 5) * 100);
-      }
-    });
-    
-    return sectionScores;
-  }, [sections]);
+  // Calculate weighted scores and overall score
+  const calculateScores = useCallback(
+    (
+      currentAnswers: Record<string, number>
+    ): { sectionScores: Record<string, number>; overallScore: number } => {
+      const sectionScores: Record<string, number> = {};
+      const sectionWeights: Record<string, number> = {};
 
-  const handleAnswer = async (questionId: string, value: number) => {
+      sections.forEach((section) => {
+        let weightedTotal = 0;
+        let totalWeight = 0;
+
+        section.questions.forEach((q) => {
+          const answer = currentAnswers[q.id];
+          if (answer !== undefined) {
+            const weight = q.weight ?? 1;
+            const min = q.scale?.min ?? 1;
+            const max = q.scale?.max ?? 5;
+            const normalized = ((answer - min) / (max - min)) * 100;
+            weightedTotal += normalized * weight;
+            totalWeight += weight;
+          }
+        });
+
+        if (totalWeight > 0) {
+          sectionScores[section.id] = Math.round(weightedTotal / totalWeight);
+          sectionWeights[section.id] = totalWeight;
+        }
+      });
+
+      const overallScore = Object.keys(sectionScores).length
+        ? Math.round(
+            Object.entries(sectionScores).reduce(
+              (sum, [id, score]) => sum + score * (sectionWeights[id] || 1),
+              0
+            ) /
+              Object.values(sectionWeights).reduce((sum, w) => sum + w, 0)
+          )
+        : 0;
+
+      return { sectionScores, overallScore };
+    },
+    [sections]
+  );
+
+  const handleAnswer = async (questionId: string, value: number, questionIndex: number) => {
     const newAnswers = { ...answers, [questionId]: value };
     setAnswers(newAnswers);
+    setCurrentQuestion(questionIndex);
     
     // Calculate real-time scores
-    const newScores = calculateScores(newAnswers);
-    setScores(newScores);
-    
+    const { sectionScores, overallScore } = calculateScores(newAnswers);
+    setScores(sectionScores);
+
     // Auto-save to local storage
     try {
-      const overallScore = Object.values(newScores).length > 0 
-        ? Math.round(Object.values(newScores).reduce((sum, score) => sum + score, 0) / Object.values(newScores).length)
-        : 0;
-        
       await saveAssessment({
         answers: newAnswers,
-        scores: newScores,
+        scores: sectionScores,
         overallScore,
         status: 'in_progress' as const
       });
@@ -90,48 +111,26 @@ export default function Assessment() {
   };
 
   const navigateToQuestion = (sectionIndex: number, questionIndex: number) => {
-    if (hasUnsavedChanges()) {
-      setPendingNavigation(() => () => {
-        setCurrentSection(sectionIndex);
-        setCurrentQuestion(questionIndex);
-      });
-      setShowConfirmDialog(true);
-    } else {
-      setCurrentSection(sectionIndex);
-      setCurrentQuestion(questionIndex);
-    }
+    setCurrentSection(sectionIndex);
+    setCurrentQuestion(questionIndex);
   };
 
-  const hasUnsavedChanges = () => {
-    if (!currentQuestionData) return false;
-    return !(currentQuestionData.id in answers);
-  };
-
-  const nextQuestion = () => {
-    if (currentQuestion < currentSectionData.questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-    } else if (currentSection < sections.length - 1) {
+  const nextSection = () => {
+    if (currentSection < sections.length - 1) {
       setCurrentSection(currentSection + 1);
       setCurrentQuestion(0);
     }
   };
 
-  const prevQuestion = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion(currentQuestion - 1);
-    } else if (currentSection > 0) {
+  const prevSection = () => {
+    if (currentSection > 0) {
       setCurrentSection(currentSection - 1);
-      setCurrentQuestion(sections[currentSection - 1].questions.length - 1);
+      setCurrentQuestion(0);
     }
   };
 
-  const canGoNext = () => {
-    return currentSection < sections.length - 1 || currentQuestion < currentSectionData.questions.length - 1;
-  };
-
-  const canGoPrev = () => {
-    return currentSection > 0 || currentQuestion > 0;
-  };
+  const canGoNextSection = () => currentSection < sections.length - 1;
+  const canGoPrevSection = () => currentSection > 0;
 
   const getSectionIcon = (sectionTitle: string) => {
     if (sectionTitle.includes("New Vehicle")) return Car;
@@ -146,7 +145,7 @@ export default function Assessment() {
     return colors[index % colors.length];
   };
 
-  // Load existing assessment data on mount (only once)
+  // Load existing assessment data on mount
   useEffect(() => {
     const loadExistingData = async () => {
       try {
@@ -155,9 +154,9 @@ export default function Assessment() {
         console.error('Failed to load assessment:', error);
       }
     };
-    
+
     loadExistingData();
-  }, []); // Remove dependencies to prevent infinite loop
+  }, [loadAssessment]);
 
   // Sync with loaded assessment data
   useEffect(() => {
@@ -167,12 +166,16 @@ export default function Assessment() {
     }
   }, [assessment]);
 
+  useEffect(() => {
+    const question = sections[currentSection]?.questions[currentQuestion];
+    if (question) {
+      questionRefs.current[question.id]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [currentSection, currentQuestion, sections]);
+
   const handleFinishAssessment = async () => {
     try {
-      const finalScores = calculateScores(answers);
-      const overallScore = Object.values(finalScores).length > 0 
-        ? Math.round(Object.values(finalScores).reduce((sum, score) => sum + score, 0) / Object.values(finalScores).length)
-        : 0;
+      const { sectionScores: finalScores, overallScore } = calculateScores(answers);
         
       // Check if all questions are answered
       const totalQuestions = sections.reduce((total, section) => total + section.questions.length, 0);
@@ -273,53 +276,56 @@ export default function Assessment() {
                   <div>
                     <CardTitle className="text-xl">{currentSectionData.title}</CardTitle>
                     <p className="text-blue-100 text-sm">
-                      Question {currentQuestion + 1} of {currentSectionData.questions.length}
+                      {currentSectionData.questions.length} questions in this section
                     </p>
                   </div>
                 </div>
               </CardHeader>
-              
-              <CardContent className="p-6">
-                {currentQuestionData && (
-                  <QuestionCard
-                    question={currentQuestionData}
-                    value={answers[currentQuestionData.id]}
-                    onChange={(value) => handleAnswer(currentQuestionData.id, value)}
-                  />
-                )}
 
-                {/* Navigation Buttons */}
-                <div className="flex justify-between mt-8">
+              <CardContent className="p-6 space-y-10">
+                {currentSectionData.questions.map((question, index) => (
+                  <motion.div
+                    key={question.id}
+                    ref={(el) => (questionRefs.current[question.id] = el)}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <QuestionCard
+                      question={question}
+                      value={answers[question.id]}
+                      onChange={(value) => handleAnswer(question.id, value, index)}
+                    />
+                  </motion.div>
+                ))}
+
+                {/* Section Navigation Buttons */}
+                <div className="flex justify-between pt-4">
                   <Button
                     variant="outline"
-                    onClick={prevQuestion}
-                    disabled={!canGoPrev()}
+                    onClick={prevSection}
+                    disabled={!canGoPrevSection()}
                     className="flex items-center gap-2"
                   >
                     <ChevronLeft className="h-4 w-4" />
-                    Previous
+                    Previous Section
                   </Button>
 
-                  <div className="flex gap-2">
-                    {canGoNext() ? (
-                      <Button
-                        onClick={nextQuestion}
-                        className="flex items-center gap-2"
-                      >
-                        Next
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={handleFinishAssessment}
-                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-                        disabled={isLoading}
-                      >
-                        {isLoading ? 'Saving...' : 'View Results'}
-                        <BarChart3 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+                  {canGoNextSection() ? (
+                    <Button onClick={nextSection} className="flex items-center gap-2">
+                      Next Section
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleFinishAssessment}
+                      className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? 'Saving...' : 'Finish Assessment'}
+                      <BarChart3 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -340,38 +346,11 @@ export default function Assessment() {
         <SmartAssistant
           open={showAssistant}
           onOpenChange={setShowAssistant}
-          currentQuestion={currentQuestionData}
+          currentQuestion={sections[currentSection].questions[currentQuestion]}
           currentSection={currentSectionData}
           answers={answers}
           scores={scores}
         />
-
-
-        {/* Confirmation Dialog */}
-        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
-              <AlertDialogDescription>
-                You have unsaved changes on this question. Are you sure you want to navigate away?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  if (pendingNavigation) {
-                    pendingNavigation();
-                    setPendingNavigation(null);
-                  }
-                  setShowConfirmDialog(false);
-                }}
-              >
-                Continue
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     </div>
   );

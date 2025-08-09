@@ -5,7 +5,7 @@ import { ArrowUp, ArrowDown, DollarSign, TrendingUp, Target } from "lucide-react
 
 interface KPIInsightsProps {
   scores: Record<string, number>;
-  answers: Record<string, any>;
+  answers: Record<string, number>;
 }
 
 interface KPIData {
