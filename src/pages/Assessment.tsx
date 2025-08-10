@@ -40,43 +40,53 @@ export default function Assessment() {
   const currentSectionData = sections[currentSection];
   const currentQuestionData = currentSectionData?.questions[currentQuestion];
 
-  // Calculate weighted scores and overall score
+  // Calculate weighted scores and overall score using logistic normalization
   const calculateScores = useCallback(
     (
       currentAnswers: Record<string, number>
     ): { sectionScores: Record<string, number>; overallScore: number } => {
       const sectionScores: Record<string, number> = {};
       const sectionWeights: Record<string, number> = {};
+      const sectionCompletion: Record<string, number> = {};
 
       sections.forEach((section) => {
         let weightedTotal = 0;
-        let totalWeight = 0;
+        let answeredWeight = 0;
+        let possibleWeight = 0;
 
         section.questions.forEach((q) => {
+          const weight = q.weight ?? 1;
+          possibleWeight += weight;
           const answer = currentAnswers[q.id];
           if (answer !== undefined) {
-            const weight = q.weight ?? 1;
             const min = q.scale?.min ?? 1;
             const max = q.scale?.max ?? 5;
-            const normalized = ((answer - min) / (max - min)) * 100;
+            const ratio = (answer - min) / (max - min);
+            const logistic = 1 / (1 + Math.exp(-12 * (ratio - 0.5)));
+            const normalized = logistic * 100;
             weightedTotal += normalized * weight;
-            totalWeight += weight;
+            answeredWeight += weight;
           }
         });
 
-        if (totalWeight > 0) {
-          sectionScores[section.id] = Math.round(weightedTotal / totalWeight);
-          sectionWeights[section.id] = totalWeight;
+        if (answeredWeight > 0) {
+          sectionScores[section.id] = Math.round(weightedTotal / answeredWeight);
+          sectionWeights[section.id] = answeredWeight;
+          sectionCompletion[section.id] = answeredWeight / possibleWeight;
         }
       });
 
-      const overallScore = Object.keys(sectionScores).length
+      const totalWeight = Object.entries(sectionWeights).reduce(
+        (sum, [id, weight]) => sum + weight * (sectionCompletion[id] || 0),
+        0
+      );
+      const overallScore = totalWeight
         ? Math.round(
             Object.entries(sectionScores).reduce(
-              (sum, [id, score]) => sum + score * (sectionWeights[id] || 1),
+              (sum, [id, score]) =>
+                sum + score * sectionWeights[id] * (sectionCompletion[id] || 0),
               0
-            ) /
-              Object.values(sectionWeights).reduce((sum, w) => sum + w, 0)
+            ) / totalWeight
           )
         : 0;
 
