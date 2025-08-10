@@ -1,6 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Check, Clock, AlertCircle } from "lucide-react";
 import { Section } from "@/data/questionnaire";
@@ -8,21 +7,17 @@ import { Section } from "@/data/questionnaire";
 interface SectionNavigationProps {
   sections: Section[];
   currentSection: number;
-  currentQuestion: number;
   answers: Record<string, number>;
-  onNavigate: (sectionIndex: number, questionIndex: number) => void;
+  onNavigate: (sectionIndex: number) => void;
   getSectionIcon: (title: string) => React.ComponentType<unknown>;
-  getSectionColor: (index: number) => string;
 }
 
 export function SectionNavigation({
   sections,
   currentSection,
-  currentQuestion,
   answers,
   onNavigate,
-  getSectionIcon,
-  getSectionColor
+  getSectionIcon
 }: SectionNavigationProps) {
   const getSectionProgress = (section: Section) => {
     const sectionQuestions = section.questions;
@@ -54,19 +49,27 @@ export function SectionNavigation({
         const Icon = getSectionIcon(section.title);
         const StatusIcon = status.icon;
         const isCurrentSection = sectionIndex === currentSection;
-        
+        const answered = section.questions.filter(q => q.id in answers).length;
+        let badge: { text: string; className: string };
+        if (progress === 100) {
+          badge = { text: "Done", className: "bg-green-100 text-green-800" };
+        } else if (progress > 0) {
+          badge = { text: "In Progress", className: "bg-yellow-100 text-yellow-800" };
+        } else {
+          badge = { text: "Not Started", className: "bg-gray-100 text-gray-800" };
+        }
+
         return (
           <Card
             key={section.id}
             className={`transition-all duration-200 cursor-pointer border-2 ${
-              isCurrentSection 
-                ? "border-blue-500 shadow-md" 
+              isCurrentSection
+                ? "border-blue-500 shadow-md"
                 : "border-gray-200 hover:border-gray-300 hover:shadow-sm"
             }`}
-            onClick={() => onNavigate(sectionIndex, 0)}
+            onClick={() => onNavigate(sectionIndex)}
           >
             <CardContent className="p-4">
-              {/* Section Header */}
               <div className="flex items-start gap-3 mb-3">
                 <div className={`p-2 rounded-lg ${status.bg}`}>
                   <Icon className={`h-5 w-5 ${status.color}`} />
@@ -79,18 +82,18 @@ export function SectionNavigation({
                     {section.description}
                   </p>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
+                  <Badge className={`${badge.className} text-xs`}>{badge.text}</Badge>
                   <StatusIcon className={`h-4 w-4 ${status.color}`} />
                 </div>
               </div>
 
-              {/* Progress */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-gray-600">
-                    {section.questions.filter(q => q.id in answers).length} of {section.questions.length}
+                    {answered} of {section.questions.length}
                   </span>
-                  <Badge 
+                  <Badge
                     variant={progress === 100 ? "default" : "secondary"}
                     className="text-xs"
                   >
@@ -99,51 +102,6 @@ export function SectionNavigation({
                 </div>
                 <Progress value={progress} className="h-2" />
               </div>
-
-              {/* Question List (for current section) */}
-              {isCurrentSection && (
-                <div className="mt-4 pt-3 border-t border-gray-200">
-                  <h4 className="text-xs font-medium text-gray-700 mb-2">Questions</h4>
-                  <div className="space-y-1 max-h-48 overflow-y-auto">
-                    {section.questions.map((question, questionIndex) => {
-                      const isAnswered = question.id in answers;
-                      const isCurrentQuestion = questionIndex === currentQuestion;
-                      
-                      return (
-                        <Button
-                          key={question.id}
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onNavigate(sectionIndex, questionIndex);
-                          }}
-                          className={`w-full justify-start text-left h-auto p-2 ${
-                            isCurrentQuestion 
-                              ? "bg-blue-100 text-blue-900" 
-                              : isAnswered 
-                                ? "bg-green-50 text-green-800"
-                                : "text-gray-600 hover:bg-gray-50"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 w-full">
-                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                              isAnswered 
-                                ? "bg-green-500" 
-                                : isCurrentQuestion 
-                                  ? "bg-blue-500"
-                                  : "bg-gray-300"
-                            }`} />
-                            <span className="text-xs truncate">
-                              Q{questionIndex + 1}: {question.text.substring(0, 40)}...
-                            </span>
-                          </div>
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
         );
