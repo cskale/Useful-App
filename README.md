@@ -30,3 +30,8 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ## Notes
 - Supabase URL and anon key are now loaded from environment variables.
 - Template identifiers have been removed.
+
+## Multi-Module Assessments
+
+Early support for running assessments across multiple modules is under development.  
+Scoring rules include an `overall` rollup for aggregating module results.
