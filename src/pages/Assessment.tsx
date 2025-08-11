@@ -85,8 +85,8 @@ export default function Assessment() {
 
   const handleSectionSave = async (sectionAnswers: Record<string, number>) => {
     const newAnswers = { ...answers, ...sectionAnswers };
-    setAnswers(newAnswers);
     const { sectionScores, overallScore } = calculateScores(newAnswers);
+    setAnswers(newAnswers);
     setScores(sectionScores);
     try {
       await saveAssessment({
@@ -98,18 +98,73 @@ export default function Assessment() {
     } catch (error) {
       console.error('Failed to save assessment:', error);
     }
+    return { answers: newAnswers, scores: sectionScores, overallScore };
   };
 
-  const navigateToSection = (index: number) => {
+  const isSectionComplete = useCallback(
+    (sectionIndex: number, answerSet: Record<string, number>) => {
+      const sec = sections[sectionIndex];
+      return sec.questions.every((q) => answerSet[q.id] !== undefined);
+    },
+    [sections]
+  );
+
+  const navigateToSection = (
+    index: number,
+    latest?: { answers: Record<string, number>; scores: Record<string, number>; overallScore: number }
+  ) => {
+    const currentAnswers = latest?.answers ?? answers;
+
+    // prevent navigating forward if previous sections incomplete
+    if (index > currentSection) {
+      for (let i = 0; i < index; i++) {
+        if (!isSectionComplete(i, currentAnswers)) {
+          return;
+        }
+      }
+    }
+
+    const proceed = () => {
+      if (index >= sections.length) {
+        const data =
+          latest || (() => {
+            const { sectionScores, overallScore } = calculateScores(currentAnswers);
+            return { answers: currentAnswers, scores: sectionScores, overallScore };
+          })();
+        const completedAt = new Date().toISOString();
+        saveAssessment({
+          answers: data.answers,
+          scores: data.scores,
+          overallScore: data.overallScore,
+          status: 'completed',
+          completedAt,
+        }).catch((e) => console.error('Failed to complete assessment:', e));
+        localStorage.setItem(
+          'completed_assessment_results',
+          JSON.stringify({
+            answers: data.answers,
+            scores: data.scores,
+            overallScore: data.overallScore,
+            completedAt,
+          })
+        );
+        navigate('/results');
+      } else {
+        setCurrentSection(index);
+      }
+    };
+
     if (formDirty) {
-      setPendingNavigation(() => () => setCurrentSection(index));
+      setPendingNavigation(() => proceed);
       setShowConfirmDialog(true);
     } else {
-      setCurrentSection(index);
+      proceed();
     }
   };
 
-  const handleNext = () => navigateToSection(currentSection + 1);
+  const handleNext = (
+    latest: { answers: Record<string, number>; scores: Record<string, number>; overallScore: number }
+  ) => navigateToSection(currentSection + 1, latest);
   const handlePrev = () => navigateToSection(currentSection - 1);
   const handleExit = () => navigate('/');
 

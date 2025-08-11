@@ -4,13 +4,22 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { QuestionCard } from "./QuestionCard";
 import type { Section } from "@/data/questionnaire";
-import { cn } from "@/lib/utils";
 
 interface SectionFormProps {
   section: Section;
   answers: Record<string, number>;
-  onSave: (values: Record<string, number>) => Promise<void>;
-  onNext: () => void;
+  onSave: (
+    values: Record<string, number>
+  ) => Promise<{
+    answers: Record<string, number>;
+    scores: Record<string, number>;
+    overallScore: number;
+  }>;
+  onNext: (latest: {
+    answers: Record<string, number>;
+    scores: Record<string, number>;
+    overallScore: number;
+  }) => void;
   onPrev: () => void;
   onExit: () => void;
   isFirst: boolean;
@@ -77,8 +86,8 @@ export function SectionForm({
   );
 
   const onSubmitNext = handleSubmit(async () => {
-    await onSave(watched as Record<string, number>);
-    onNext();
+    const latest = await onSave(watched as Record<string, number>);
+    onNext(latest);
   });
 
   const onSubmitPrev = async () => {
@@ -95,13 +104,17 @@ export function SectionForm({
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: { staggerChildren: 0.1 },
+      transition: { staggerChildren: 0.15, delayChildren: 0.05 },
     },
   };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 10 },
-    show: { opacity: 1, y: 0 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { type: "spring", stiffness: 120, damping: 20 },
+    },
   };
 
   return (
@@ -119,16 +132,14 @@ export function SectionForm({
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="pt-4"
+        className="pt-4 space-y-4"
       >
-        {section.questions.map((question, index) => (
+        {section.questions.map((question) => (
           <motion.div
             key={question.id}
             variants={itemVariants}
-            className={cn(
-              "bg-white rounded-lg shadow p-6",
-              index > 0 && "mt-6"
-            )}
+            whileHover={{ scale: 1.01 }}
+            className="bg-white rounded-lg shadow p-6"
           >
             <Controller
               name={question.id}
@@ -162,11 +173,13 @@ export function SectionForm({
           <Button type="button" variant="outline" onClick={onSubmitExit}>
             Save &amp; Exit
           </Button>
-          {!isLast && (
-            <Button type="button" onClick={onSubmitNext}>
-              Save &amp; Next Section
-            </Button>
-          )}
+          <Button
+            type="button"
+            onClick={onSubmitNext}
+            disabled={completion < 100}
+          >
+            {isLast ? "Save & Finish" : "Save & Next Section"}
+          </Button>
         </div>
       </div>
     </form>
