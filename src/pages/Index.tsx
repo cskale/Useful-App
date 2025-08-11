@@ -240,3 +240,9 @@ const Index = () => {
 };
 
 export default Index;
+
+<div className="mt-6">
+  <a href="/assess/start" className="inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent">
+    Start Modular Assessment
+  </a>
+</div>

@@ -32,7 +32,9 @@ export default function Assessment() {
     isLoading 
   } = useAssessmentData();
 
-  const sections = questionnaire.sections;
+  const [params] = useSearchParams();
+const activeModuleSlug = params.get("module");
+const sections = questionnaire.sections.filter(s => !activeModuleSlug || s.id === activeModuleSlug);
   const totalQuestions = sections.reduce((sum, section) => sum + section.questions.length, 0);
   const answeredQuestions = Object.keys(answers).length;
   const progress = (answeredQuestions / totalQuestions) * 100;
