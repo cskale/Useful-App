@@ -13,6 +13,8 @@ interface EnhancedChartsProps {
   benchmarks?: Record<string, number>;
   trends?: Record<string, number>;
   dealershipId?: string;
+  /** Optional module identifier to scope historical trends */
+  moduleSlug?: string;
 }
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
@@ -20,7 +22,9 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'
 export const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
   scores,
   benchmarks = {},
-  trends = {}
+  trends = {},
+  dealershipId,
+  moduleSlug,
 }) => {
   // Prepare data for charts
   const radarData = Object.entries(scores).map(([key, value]) => ({
@@ -65,9 +69,14 @@ export const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
     if (!dealershipId) return;
 
     const fetchData = async () => {
-      const { data, error } = await supabase.rpc('get_historical_scores', {
+      const params: { dealership_id: string; module_slug?: string } = {
         dealership_id: dealershipId,
-      });
+      };
+      if (moduleSlug) {
+        params.module_slug = moduleSlug;
+      }
+
+      const { data, error } = await supabase.rpc('get_historical_scores', params);
       if (!error && data) {
         const mapped = data.map((row: { created_at: string; overall_score: number }) => ({
           month: new Date(row.created_at).toLocaleDateString('en', { month: 'short' }),
@@ -104,7 +113,7 @@ export const EnhancedCharts: React.FC<EnhancedChartsProps> = ({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [dealershipId]);
+  }, [dealershipId, moduleSlug]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

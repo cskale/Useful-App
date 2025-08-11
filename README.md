@@ -30,3 +30,4 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ## Notes
 - Supabase URL and anon key are now loaded from environment variables.
 - Template identifiers have been removed.
+- `get_historical_scores` RPC accepts an optional `module_slug` argument to fetch module-specific trends; omit or set to `null` to include all modules.
