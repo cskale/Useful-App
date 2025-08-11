@@ -74,6 +74,7 @@ export function QuestionCard({ question, value, onChange }: QuestionCardProps) {
                   key={rating}
                   variant={isSelected ? "default" : "outline"}
                   onClick={() => handleRatingClick(rating)}
+                  type="button"
                   className={`h-auto p-4 flex flex-col items-center gap-2 transition-all duration-200 ${
                     isSelected ? getRatingColor(rating) : "hover:bg-gray-50"
                   }`}
@@ -105,6 +106,7 @@ export function QuestionCard({ question, value, onChange }: QuestionCardProps) {
           size="sm"
           onClick={() => setShowNotes(!showNotes)}
           className="flex items-center gap-2"
+          type="button"
         >
           <MessageSquare className="h-4 w-4" />
           {showNotes ? "Hide Notes" : "Add Notes"}
