@@ -1,0 +1,23 @@
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -8,10 +8,14 @@ import Results from "./pages/Results";
+ import NotFound from "./pages/NotFound";
++import Start from "./pages/Start";
++import RunResult from "./pages/RunResult";
+
+ const queryClient = new QueryClient();
+
+ const App = () => (
+   <QueryClientProvider client={queryClient}>
+     <TooltipProvider>
+       <Toaster />
+       <BrowserRouter>
+         <Routes>
+           <Route path="/" element={<Index />} />
++          <Route path="/assess/start" element={<Start />} />
+           <Route path="/assessment" element={<Assessment />} />
+           <Route path="/results" element={<Results />} />
++          <Route path="/assess/run/:runId/result" element={<RunResult />} />
+           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+           <Route path="*" element={<NotFound />} />
+         </Routes>
